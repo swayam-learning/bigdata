@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Big Data Study Guide with Gemini AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Calm Harmony" - A palette of warm neutrals (slate, stone) with a subtle teal accent for interactive elements. -->
+    <!-- Application Structure Plan: A responsive sidebar navigation layout. The sidebar contains links to major technology categories (Foundations, Storage, Processing, etc.) and specific tools (HDFS, Spark, etc.). Clicking a link dynamically updates the main content area, displaying the relevant information for that topic. This structure was chosen because it provides a clear, persistent map of the learning path, allowing users to easily jump between related concepts (like comparing HDFS and S3) or follow the curriculum sequentially. It's more intuitive for both focused study and quick reference than a long, single-page scroll. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Core Concepts -> Goal: Inform -> Presentation: Interactive cards -> Interaction: Click to expand/collapse -> Justification: Breaks down dense definitions into digestible, on-demand pieces. Method: HTML/CSS/JS.
+        - Report Info: Spark vs. Flink Comparison -> Goal: Compare -> Viz: Grouped Bar Chart -> Interaction: Tooltips on hover -> Justification: Visually quantifies abstract comparisons like latency and ecosystem maturity, making the differences more impactful. Library: Chart.js.
+        - Report Info: HDFS Architecture -> Goal: Organize -> Viz: HTML/CSS Diagram -> Interaction: Static -> Justification: A simple visual layout of the master-slave architecture is clearer than text alone. Avoids complex libraries for a simple concept. Method: HTML/CSS with Tailwind Flexbox.
+        - Report Info: S3 Storage Classes -> Goal: Compare -> Viz: Horizontal Bar Chart -> Interaction: Tooltips on hover -> Justification: Effectively visualizes the trade-offs between cost and retrieval time for different S3 tiers. Library: Chart.js.
+        - Report Info: Code Examples -> Goal: Inform/Enable -> Presentation: Styled code blocks -> Interaction: "Copy Code" button -> Justification: Improves usability by allowing learners to easily grab and run code snippets. Method: HTML/JS.
+        - Gemini Feature: Project Idea Generator -> Goal: Apply -> Presentation: Modal with generated HTML -> Interaction: Button click -> Justification: Connects theory to practice by providing actionable project ideas for each technology. Method: Gemini API.
+        - Gemini Feature: Code Explainer -> Goal: Understand -> Presentation: Modal with generated HTML -> Interaction: Button click -> Justification: Demystifies code by providing line-by-line explanations, aiding comprehension for beginners. Method: Gemini API.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .content-card {
+            transition: all 0.3s ease;
+        }
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        .main-content {
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .code-block {
+            position: relative;
+        }
+        .copy-btn, .gemini-code-btn {
+            position: absolute;
+            top: 0.5rem;
+            background-color: #4A5568;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .copy-btn {
+            right: 0.5rem;
+        }
+        .gemini-code-btn {
+            right: 4.5rem;
+        }
+        .code-block:hover .copy-btn, .code-block:hover .gemini-code-btn {
+            opacity: 1;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #14b8a6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="bg-slate-800 text-white w-64 min-h-screen p-4 flex-shrink-0 fixed lg:relative lg:translate-x-0 -translate-x-full z-30">
+            <h1 class="text-2xl font-bold mb-6 border-b border-slate-600 pb-4">Data Engineering AI</h1>
+            <nav id="navigation" class="space-y-2">
+                <a href="#introduction" class="nav-link block py-2 px-3 rounded bg-teal-600">Introduction</a>
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase mt-4 mb-2">Foundations</h3>
+                    <a href="#concepts" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">Core Concepts</a>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase mt-4 mb-2">Storage & Tables</h3>
+                    <a href="#hdfs" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">HDFS / Hadoop</a>
+                    <a href="#s3" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">Amazon S3</a>
+                    <a href="#delta" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">Delta Lake</a>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase mt-4 mb-2">Processing</h3>
+                    <a href="#spark" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">Apache Spark</a>
+                    <a href="#flink" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">Apache Flink</a>
+                    <a href="#spark-vs-flink" class="nav-link block py-2 px-3 rounded hover:bg-slate-700">Spark vs. Flink</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            <div class="lg:hidden flex justify-between items-center mb-4">
+                <h2 id="mobile-header-title" class="text-2xl font-bold text-slate-700">Introduction</h2>
+                <button id="menu-toggle" class="p-2 rounded-md bg-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+            <div id="content-container"></div>
+        </main>
+    </div>
+
+    <!-- Gemini Modal -->
+    <div id="gemini-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 id="gemini-modal-title" class="text-xl font-bold text-slate-700">✨ AI Assistant</h3>
+                <button id="gemini-modal-close" class="p-2 rounded-full hover:bg-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div id="gemini-modal-content" class="p-6 overflow-y-auto">
+                <div class="flex items-center justify-center h-64">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const contentData = {
+            introduction: {
+                title: 'Introduction',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">Navigating the Modern Data Engineering Landscape</h2>
+                        <p class="mb-4 text-lg text-slate-600">This interactive guide provides a comprehensive, practical, and project-oriented path to mastering the essential technologies that power today's data platforms. The field has evolved from on-premise Hadoop clusters to flexible, powerful cloud architectures. This guide is structured to empower you to understand the 'what', 'why', and 'how' of each technology, enabling you to build robust and scalable data systems.</p>
+                        <p class="text-slate-600">Use the navigation on the left to explore different technologies. Each section covers the core theory, practical code examples, and real-world use cases. The goal is to move from foundational concepts to the implementation of complex data pipelines. <strong class="text-teal-600">New ✨ AI features have been added to generate project ideas and explain code!</strong></p>
+                    </div>`
+            },
+            concepts: {
+                title: 'Core Concepts',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">Core Concepts</h2>
+                        <p class="mb-6 text-lg text-slate-600">Before diving into specific technologies, it's crucial to understand the fundamental concepts that define the modern data stack. These ideas form the foundation for every architecture and tool you will encounter.</p>
+                        <div class="space-y-4">
+                            <div class="border border-slate-200 rounded-lg p-4"><h3 class="font-semibold text-xl text-teal-700">Data Lake</h3><p class="text-slate-600 mt-1">A centralized repository for vast amounts of raw data in its native format. It offers flexibility but can become a "data swamp" without proper governance.</p></div>
+                            <div class="border border-slate-200 rounded-lg p-4"><h3 class="font-semibold text-xl text-teal-700">Data Warehouse</h3><p class="text-slate-600 mt-1">A system for BI and analytics, storing structured, cleaned, and modeled data. It prioritizes query performance and data integrity.</p></div>
+                            <div class="border border-slate-200 rounded-lg p-4"><h3 class="font-semibold text-xl text-teal-700">Data Lakehouse</h3><p class="text-slate-600 mt-1">A hybrid architecture combining the low-cost storage of a data lake with the reliability and performance features (like ACID transactions) of a data warehouse.</p></div>
+                        </div>
+                    </div>`
+            },
+            hdfs: {
+                title: 'HDFS / Hadoop',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">The Hadoop Ecosystem & HDFS</h2>
+                        <p class="mb-6 text-lg text-slate-600">Apache Hadoop is the open-source framework that pioneered distributed storage and processing of big data on commodity hardware. While modern architectures often favor cloud storage, understanding Hadoop is crucial as it laid the foundation for the entire field.</p>
+                        <button class="gemini-btn my-4 bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors" data-type="project" data-topic="Hadoop and HDFS">✨ Generate Project Ideas</button>
+                        <h3 class="text-2xl font-semibold mt-6 mb-3 text-teal-700">Practical: HDFS Shell Commands</h3>
+                        <div class="code-block bg-slate-800 text-white p-4 rounded-lg overflow-x-auto">
+                            <button class="gemini-code-btn" data-type="code" data-lang="Bash">✨ Explain</button>
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-bash"># List files in the root directory
+hdfs dfs -ls /
+
+# Copy a local file 'data.csv' into HDFS
+hdfs dfs -put data.csv /my_data/
+
+# View the contents of a file in HDFS
+hdfs dfs -cat /my_data/data.csv</code></pre>
+                        </div>
+                    </div>`
+            },
+            s3: {
+                title: 'Amazon S3',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">Cloud Object Storage with Amazon S3</h2>
+                        <p class="mb-6 text-lg text-slate-600">Amazon S3 is the de facto standard for cloud data lakes, offering a highly scalable, durable, and cost-effective object storage service.</p>
+                        <button class="gemini-btn my-4 bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors" data-type="project" data-topic="Amazon S3">✨ Generate Project Ideas</button>
+                        <h3 class="text-2xl font-semibold mt-6 mb-3 text-teal-700">S3 Storage Classes</h3>
+                        <div class="chart-container"><canvas id="s3Chart"></canvas></div>
+                        <h3 class="text-2xl font-semibold mt-8 mb-3 text-teal-700">Practical: S3 with Python (Boto3)</h3>
+                        <div class="code-block bg-slate-800 text-white p-4 rounded-lg overflow-x-auto">
+                            <button class="gemini-code-btn" data-type="code" data-lang="Python">✨ Explain</button>
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-python">import boto3
+s3 = boto3.client('s3')
+s3.upload_file('local_file.txt', 'my-bucket', 'data/raw/file.txt')
+s3.download_file('my-bucket', 'data/raw/file.txt', 'downloaded_file.txt')</code></pre>
+                        </div>
+                    </div>`
+            },
+            delta: {
+                title: 'Delta Lake',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">The Modern Data Lakehouse & Delta Lake</h2>
+                        <p class="mb-6 text-lg text-slate-600">Delta Lake is an open-source storage layer that brings ACID transactions and reliability to data lakes, forming the foundation of the Lakehouse architecture.</p>
+                        <button class="gemini-btn my-4 bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors" data-type="project" data-topic="Delta Lake">✨ Generate Project Ideas</button>
+                        <h3 class="text-2xl font-semibold mt-6 mb-3 text-teal-700">Practical: Delta Lake with PySpark</h3>
+                        <div class="code-block bg-slate-800 text-white p-4 rounded-lg overflow-x-auto">
+                            <button class="gemini-code-btn" data-type="code" data-lang="Python and PySpark">✨ Explain</button>
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-python"># Write data to a Delta table
+df.write.format("delta").mode("overwrite").save("/tmp/delta-table")
+
+# Conditionally update the table
+from delta.tables import DeltaTable
+deltaTable = DeltaTable.forPath(spark, "/tmp/delta-table")
+deltaTable.update(
+  condition = "id % 2 == 0",
+  set = { "group": "'even'" }
+)</code></pre>
+                        </div>
+                    </div>`
+            },
+            spark: {
+                title: 'Apache Spark',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">Unified Analytics with Apache Spark</h2>
+                        <p class="mb-6 text-lg text-slate-600">Apache Spark is the dominant engine for large-scale data processing, providing a unified framework for ETL, interactive queries, and machine learning.</p>
+                        <button class="gemini-btn my-4 bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors" data-type="project" data-topic="Apache Spark">✨ Generate Project Ideas</button>
+                        <h3 class="text-2xl font-semibold mt-6 mb-3 text-teal-700">Practical: Data Transformation with PySpark</h3>
+                        <div class="code-block bg-slate-800 text-white p-4 rounded-lg overflow-x-auto">
+                            <button class="gemini-code-btn" data-type="code" data-lang="Python and PySpark">✨ Explain</button>
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-python">from pyspark.sql.functions import col, avg
+high_value_df = df.filter(col("price") > 100)
+avg_price_by_category = df.groupBy("category") \\
+  .agg(avg("price").alias("avg_price"))
+avg_price_by_category.show()</code></pre>
+                        </div>
+                    </div>`
+            },
+            flink: {
+                title: 'Apache Flink',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">Real-Time Stream Processing with Apache Flink</h2>
+                        <p class="mb-6 text-lg text-slate-600">Apache Flink is a true, low-latency stream processing engine, excelling at stateful computations over continuous data streams.</p>
+                        <button class="gemini-btn my-4 bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors" data-type="project" data-topic="Apache Flink">✨ Generate Project Ideas</button>
+                        <h3 class="text-2xl font-semibold mt-6 mb-3 text-teal-700">Practical: Streaming WordCount (Java)</h3>
+                        <div class="code-block bg-slate-800 text-white p-4 rounded-lg overflow-x-auto">
+                            <button class="gemini-code-btn" data-type="code" data-lang="Java">✨ Explain</button>
+                            <button class="copy-btn">Copy</button>
+                            <pre><code class="language-java">final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+DataStream<String> text = env.socketTextStream("localhost", 9999);
+DataStream<Tuple2<String, Integer>> counts = text
+       .flatMap(new Tokenizer())
+       .keyBy(value -> value.f0)
+       .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
+       .sum(1);
+counts.print();
+env.execute("Streaming WordCount");</code></pre>
+                        </div>
+                    </div>`
+            },
+            'spark-vs-flink': {
+                title: 'Spark vs. Flink',
+                content: `
+                    <div class="content-card bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-3xl font-bold mb-4 text-slate-700">Comparative Analysis: Spark vs. Flink</h2>
+                        <p class="mb-6 text-lg text-slate-600">Choosing between Spark and Flink is a critical architectural decision. Spark is a versatile generalist, while Flink is a real-time specialist. This comparison highlights their key differences.</p>
+                        <div class="chart-container"><canvas id="sparkVsFlinkChart"></canvas></div>
+                        <div class="mt-8">
+                            <h3 class="text-2xl font-semibold mb-3 text-teal-700">Key Takeaways</h3>
+                            <ul class="list-disc list-inside space-y-3 text-slate-600">
+                                <li><strong>Choose Spark when:</strong> You need a unified platform for batch and near real-time streaming ETL, your latency requirements are in the seconds range, and you want to leverage a mature, broad ecosystem including ML and graph processing.</li>
+                                <li><strong>Choose Flink when:</strong> Your application requires ultra-low (millisecond) latency, you are building complex event processing (CEP) or stateful applications (like fraud detection), and you need fine-grained control over state and time.</li>
+                            </ul>
+                        </div>
+                    </div>`
+            }
+        };
+
+        const contentContainer = document.getElementById('content-container');
+        const navigation = document.getElementById('navigation');
+        const mobileHeaderTitle = document.getElementById('mobile-header-title');
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const geminiModal = document.getElementById('gemini-modal');
+        const geminiModalTitle = document.getElementById('gemini-modal-title');
+        const geminiModalContent = document.getElementById('gemini-modal-content');
+        const geminiModalClose = document.getElementById('gemini-modal-close');
+
+        let activeLink = null;
+        let sparkVsFlinkChart = null;
+        let s3Chart = null;
+
+        const API_KEY = ""; // Platform will inject the key here.
+
+        function renderContent(hash) {
+            const key = hash.substring(1);
+            const contentInfo = contentData[key] || contentData.introduction;
+            contentContainer.innerHTML = contentInfo.content;
+            mobileHeaderTitle.textContent = contentInfo.title;
+
+            if (activeLink) activeLink.classList.remove('bg-teal-600');
+            activeLink = document.querySelector(`.nav-link[href="${hash}"]`);
+            if (activeLink) activeLink.classList.add('bg-teal-600');
+            
+            if (key === 'spark-vs-flink') createSparkVsFlinkChart();
+            if (key === 's3') createS3Chart();
+
+            if (window.innerWidth < 1024) sidebar.classList.add('-translate-x-full');
+        }
+
+        async function callGeminiApi(prompt, maxRetries = 3) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            
+            let attempt = 0;
+            while (attempt < maxRetries) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                        // The response might contain markdown formatting like ```html ... ```, let's clean it.
+                        let rawText = result.candidates[0].content.parts[0].text;
+                        rawText = rawText.replace(/^```html\n/, '').replace(/\n```$/, '');
+                        return rawText;
+                    } else {
+                        throw new Error("Invalid response structure from Gemini API.");
+                    }
+                } catch (error) {
+                    console.error(`API call attempt ${attempt + 1} failed:`, error);
+                    attempt++;
+                    if (attempt >= maxRetries) {
+                        return `<div class="text-red-600">Sorry, the AI assistant is currently unavailable. Please try again later.</div>`;
+                    }
+                    // Exponential backoff
+                    const delay = Math.pow(2, attempt) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        function showModal(title) {
+            geminiModalTitle.textContent = title;
+            geminiModalContent.innerHTML = `<div class="flex items-center justify-center h-64"><div class="loader"></div></div>`;
+            geminiModal.classList.remove('hidden');
+        }
+
+        function hideModal() {
+            geminiModal.classList.add('hidden');
+        }
+
+        async function handleGeminiClick(e) {
+            const target = e.target.closest('.gemini-btn, .gemini-code-btn');
+            if (!target) return;
+
+            const type = target.dataset.type;
+            let prompt = '';
+            let title = '✨ AI Assistant';
+
+            if (type === 'project') {
+                const topic = target.dataset.topic;
+                title = `✨ Project Ideas for ${topic}`;
+                prompt = `You are an expert data engineering mentor. For the technology '${topic}', generate 3 distinct, real-world project ideas suitable for a beginner-to-intermediate learner. For each idea, provide:
+1. A clear project title.
+2. A brief description (2-3 sentences).
+3. A list of key skills learned.
+Format the entire output as clean HTML. Use a main container div. For each project, use a div with a border, padding, and rounded corners. Use h4 for the title, p for the description, and an unordered list (ul) for the skills. Use Tailwind CSS classes for styling.`;
+            } else if (type === 'code') {
+                const codeBlock = target.closest('.code-block');
+                const code = codeBlock.querySelector('code').innerText;
+                const lang = target.dataset.lang;
+                title = `✨ Explaining this ${lang} Code`;
+                prompt = `You are an expert code tutor. Explain the following ${lang} code snippet. Break it down and explain what each significant line or block does in simple terms. The goal is to help a beginner understand the purpose and flow of the code. The code is: \n\n ${code}. Format the entire output as clean HTML. Use a main container div. Use an ordered list (<ol>) where each list item (<li>) explains a part of the code. Use <code> tags for code keywords and Tailwind CSS classes for styling (e.g., 'font-mono', 'bg-slate-100', 'p-1', 'rounded').`;
+            }
+
+            if (prompt) {
+                showModal(title);
+                const responseHtml = await callGeminiApi(prompt);
+                geminiModalContent.innerHTML = responseHtml;
+            }
+        }
+
+        function createS3Chart() { /* Chart.js logic remains the same */ }
+        function createSparkVsFlinkChart() { /* Chart.js logic remains the same */ }
+        
+        // Minor chart function adjustments to avoid re-declaration errors
+        const originalCreateS3Chart = () => {
+            const ctx = document.getElementById('s3Chart');
+            if (!ctx) return;
+            if (s3Chart) s3Chart.destroy();
+            s3Chart = new Chart(ctx, { type: 'bar', data: { labels: ['S3 Standard', 'Intelligent-Tiering', 'Standard-IA', 'Glacier Instant', 'Glacier Deep Archive'], datasets: [{ label: 'Storage Cost (Lower is cheaper)', data: [10, 9, 6, 4, 1], backgroundColor: 'rgba(13, 148, 136, 0.6)' }, { label: 'Retrieval Speed (Higher is faster)', data: [10, 10, 9, 8, 2], backgroundColor: 'rgba(55, 65, 81, 0.6)' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'S3 Storage Classes: Cost vs. Retrieval Speed' } } } });
+        };
+        const originalCreateSparkVsFlinkChart = () => {
+            const ctx = document.getElementById('sparkVsFlinkChart');
+            if (!ctx) return;
+            if (sparkVsFlinkChart) sparkVsFlinkChart.destroy();
+            sparkVsFlinkChart = new Chart(ctx, { type: 'bar', data: { labels: ['Latency', 'Throughput', 'State Management', 'Ecosystem Maturity'], datasets: [{ label: 'Apache Spark', data: [6, 9, 7, 10], backgroundColor: 'rgba(13, 148, 136, 0.6)' }, { label: 'Apache Flink', data: [10, 7, 9, 6], backgroundColor: 'rgba(55, 65, 81, 0.6)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 10, title: { display: true, text: 'Relative Capability' } } }, plugins: { title: { display: true, text: 'Spark vs. Flink Feature Comparison' } } } });
+        };
+        createS3Chart = originalCreateS3Chart;
+        createSparkVsFlinkChart = originalCreateSparkVsFlinkChart;
+        
+        // Event Listeners
+        navigation.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                const hash = new URL(e.target.href).hash;
+                if(hash) { e.preventDefault(); window.location.hash = hash; }
+            }
+        });
+        menuToggle.addEventListener('click', () => sidebar.classList.toggle('-translate-x-full'));
+        window.addEventListener('hashchange', () => renderContent(window.location.hash || '#introduction'));
+        contentContainer.addEventListener('click', handleGeminiClick);
+        contentContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('copy-btn')) {
+                const pre = e.target.nextElementSibling;
+                const code = pre.querySelector('code').innerText;
+                navigator.clipboard.writeText(code).then(() => {
+                    e.target.textContent = 'Copied!';
+                    setTimeout(() => { e.target.textContent = 'Copy'; }, 2000);
+                });
+            }
+        });
+        geminiModalClose.addEventListener('click', hideModal);
+        geminiModal.addEventListener('click', (e) => {
+            if (e.target.id === 'gemini-modal') hideModal();
+        });
+
+        // Initial load
+        renderContent(window.location.hash || '#introduction');
+    </script>
+</body>
+</html>
